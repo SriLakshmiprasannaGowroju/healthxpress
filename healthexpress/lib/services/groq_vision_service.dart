@@ -192,33 +192,38 @@ Answer the user's question with precise, medically accurate, and friendly clinic
 
     messages.add({'role': 'user', 'content': question});
 
-    try {
-      final response = await http
-          .post(
-            Uri.parse(_baseUrl),
-            headers: {
-              'Authorization': 'Bearer ${AppConfig.groqApiKey}',
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode({
-              'model': 'qwen/qwen3.6-27b',
-              'messages': messages,
-              'temperature': 0.3,
-              'max_tokens': 600,
-            }),
-          )
-          .timeout(const Duration(seconds: 10));
+    final textModelsToTry = ['openai/gpt-oss-20b', 'groq/compound', 'qwen/qwen3.6-27b'];
 
-      if (response.statusCode == 200) {
-        final bodyJson = jsonDecode(response.body);
-        final content = bodyJson['choices']?[0]?['message']?['content']?.toString();
-        if (content != null && content.trim().isNotEmpty) {
-          return _cleanThinkingBlock(content.trim());
+    for (final textModel in textModelsToTry) {
+      try {
+        final response = await http
+            .post(
+              Uri.parse(_baseUrl),
+              headers: {
+                'Authorization': 'Bearer ${AppConfig.groqApiKey}',
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode({
+                'model': textModel,
+                'messages': messages,
+                'temperature': 0.3,
+                'max_tokens': 500,
+              }),
+            )
+            .timeout(const Duration(seconds: 10));
+
+        if (response.statusCode == 200) {
+          final bodyJson = jsonDecode(response.body);
+          final content = bodyJson['choices']?[0]?['message']?['content']?.toString();
+          if (content != null && content.trim().isNotEmpty) {
+            return _cleanThinkingBlock(content.trim());
+          }
         }
+      } catch (e) {
+        debugPrint('Groq follow-up error on $textModel: $e');
       }
-    } catch (e) {
-      debugPrint('Groq follow-up error: $e');
     }
+
 
     return 'Based on the clinical assessment for ${previousResult.name}, follow the recommended guidelines and consult your specialist doctor for personalized therapy.';
   }
