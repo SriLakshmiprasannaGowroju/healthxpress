@@ -69,6 +69,7 @@ All API keys are fully configured, tested, and embedded in the codebase ([AppCon
 
 | Service | Active Key / Credential | Secondary / Fallback Key | Notes & Purpose |
 | :--- | :--- | :--- | :--- |
+| **Groq Multimodal Vision AI** | `Configured in AppConfig.groqApiKey` | Models: `qwen/qwen3.6-27b`, `qwen/qwen3.8-27b`, `openai/gpt-oss-20b`, `groq/compound` | Food calorie estimation, infection diagnostics, medicine Rx analysis & interactive follow-up |
 | **Backend REST API** | `https://vedvaidyam.com/healthexpress/api` | N/A | Production PHP REST API on Hostinger |
 | **MySQL Database** | Host: `147.93.101.73` (port: `3306`)<br>DB: `u170253497_healthexpress`<br>User: `u170253497_healthexpress`<br>Pass: `Healthxpress_1234567` | N/A | Remote MySQL production database |
 | **SSH VPS Access** | `ssh -p 65002 u170253497@147.93.101.73`<br>Pass: `Honey_comb@@#$%^&d1` | N/A | Server administration & PHP backend |
@@ -79,6 +80,7 @@ All API keys are fully configured, tested, and embedded in the codebase ([AppCon
 | **Firebase Auth & Cloud** | API Key: `AIzaSyCU7Psyt8Rl5kQScIDAavvleuyNjkhVFxo`<br>App ID: `1:575738669292:web:305a1fce4415b605c3ddc9`<br>Project: `healthexpress-1` | N/A | Google OAuth popup & user sessions |
 | **Razorpay Payments** | Key ID: `rzp_live_StBUehIpeULYuL`<br>Secret: `M76UWnmNsVE7hU5QrkriZuor` | N/A | Real payment gateway integration |
 | **NVIDIA NIM LLM** | `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` | Model: `openai/gpt-oss-20b` | Clinical AI diagnostic assistant |
+
 
 ---
 
@@ -230,6 +232,13 @@ healthyxpress_medha/
 ### 3. Multilingual Clinical Voice Pipeline
 - Combines browser Web Speech VAD (Voice Activity Detection), Sarvam `saaras:v3` STT, `sarvam-105b-conversations` medical LLM, and Sarvam `bulbul:v3` 22kHz HD clinical voice synthesizer (Telugu `kavitha`, Hindi `kavya`, English `priya`).
 
+### 4. Groq Multimodal AI Vision & Diagnostic Scanner
+- [`GroqVisionService`](file:///c:/Users/shese/Desktop/healthyxpress_medha/healthexpress/lib/services/groq_vision_service.dart) & [`AiLensScannerScreen`](file:///c:/Users/shese/Desktop/healthyxpress_medha/healthexpress/lib/screens/user/ai_lens_scanner_screen.dart):
+  - **Food & Nutrition Scope**: Analyzes meal images, calculates total calories (`kcal`), macros (protein, carbs, fat, fiber, sugar, sodium), Glycemic Index (*Low/Med/High*), Health Score (1-10), and recommends healthier related dishes.
+  - **Infection & Disease Scope**: Analyzes skin rashes, wounds, eye/throat symptoms. Determines infection severity (*Mild/Moderate/Urgent*), probable causes, observed symptoms, recommended first-line medications, diagnostic lab tests, and routes users directly to **Book Doctor Appointment** with the relevant specialist (*Dermatologist, General Physician, ENT*).
+  - **Medicine & Rx Scope**: Strictly identifies medicine names, chemical molecules, drug classes, clinical indications, dosages, precautions, and 15-min pharmacy fulfillment.
+  - **Vision Engine**: Utilizes `qwen/qwen3.6-27b` and `qwen/qwen3.8-27b` multimodal models on Groq Cloud with sanitization of `<think>` reasoning blocks and fallback to `openai/gpt-oss-20b` for interactive follow-up chat.
+
 ---
 
 ## 📞 8. Support & Maintainer Contact
@@ -238,3 +247,4 @@ For questions, infrastructure changes, or credentials provisioning:
 - **Production Server**: Hostinger VPS (`147.93.101.73`)
 - **Live Web App**: [https://pavanstarkin-tech.github.io/healthyxpress_medha/](https://pavanstarkin-tech.github.io/healthyxpress_medha/)
 - **Live Admin Panel**: [https://pavanstarkin-tech.github.io/healthyxpress_medha/admin/](https://pavanstarkin-tech.github.io/healthyxpress_medha/admin/)
+
