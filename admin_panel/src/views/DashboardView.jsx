@@ -99,6 +99,8 @@ export default function DashboardView({ onNavigate, onOpenAddHospital, onOpenAdd
       }
     }
     loadLiveStats();
+    const interval = setInterval(loadLiveStats, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const trendData = {

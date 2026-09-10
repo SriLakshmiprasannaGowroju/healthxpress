@@ -19,7 +19,7 @@ class AdminController {
             (SELECT COUNT(*) FROM doctors) AS total_doctors,
             (SELECT COUNT(*) FROM hospitals) AS total_hospitals,
             (SELECT COUNT(*) FROM appointments) AS total_appointments,
-            (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE status = 'paid') AS gross_revenue,
+            (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE status = 'success' OR status = 'paid') AS gross_revenue,
             (SELECT COUNT(*) FROM doctors WHERE verification_status = 'pending') AS pending_doctors,
             (SELECT COUNT(*) FROM hospitals WHERE verification_status = 'pending') AS pending_hospitals,
             (SELECT COUNT(*) FROM tickets WHERE status = 'open') AS open_tickets";
@@ -85,8 +85,7 @@ class AdminController {
             h.name, 
             COUNT(a.id) AS bookings 
         FROM hospitals h
-        LEFT JOIN doctor_hospitals dh ON h.id = dh.hospital_id
-        LEFT JOIN appointments a ON dh.doctor_id = a.doctor_id
+        LEFT JOIN appointments a ON h.id = a.hospital_id
         GROUP BY h.id, h.name
         ORDER BY bookings DESC
         LIMIT 5";
@@ -104,10 +103,10 @@ class AdminController {
         $pdo = Database::getConnection();
 
         $query = "SELECT 
-            consultation_type, 
+            type AS consultation_type, 
             COUNT(*) AS count 
         FROM appointments 
-        GROUP BY consultation_type";
+        GROUP BY type";
 
         $stmt = $pdo->query($query);
         $distribution = $stmt->fetchAll();
@@ -121,7 +120,7 @@ class AdminController {
     public static function getActivityLogs(): void {
         $pdo = Database::getConnection();
 
-        $query = "SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 10";
+        $query = "SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 15";
         $stmt = $pdo->query($query);
         $logs = $stmt->fetchAll();
 
@@ -135,8 +134,26 @@ class AdminController {
         $pdo = Database::getConnection();
 
         $query = "SELECT 
-            u.id, u.name, u.phone, u.email, u.aarogyasri_id, u.role, u.created_at,
-            hp.blood_group, hp.allergies, hp.past_surgeries, hp.current_medications, hp.completion_percent
+            u.id, 
+            u.name, 
+            u.mobile AS phone, 
+            u.email, 
+            COALESCE(hp.aarogyasri_id, '') AS aarogyasri_id, 
+            u.role, 
+            u.address,
+            u.city,
+            u.state,
+            u.pincode,
+            u.emergency_contact,
+            u.profile_picture,
+            u.gender,
+            u.dob,
+            u.created_at,
+            hp.blood_group, 
+            hp.allergies, 
+            hp.previous_surgeries AS past_surgeries, 
+            hp.current_medications, 
+            hp.existing_conditions
         FROM users u
         LEFT JOIN health_profiles hp ON u.id = hp.user_id
         ORDER BY u.created_at DESC";
@@ -156,7 +173,7 @@ class AdminController {
         $query = "SELECT 
             p.*,
             u.name AS user_name,
-            u.phone AS user_phone,
+            u.mobile AS user_phone,
             a.doctor_id,
             d.name AS doctor_name,
             d.specialty AS doctor_specialty
@@ -180,17 +197,18 @@ class AdminController {
 
         $query = "SELECT 
             a.*,
+            a.type AS consultation_type,
             u.name AS patient_name,
-            u.phone AS patient_phone,
-            u.aarogyasri_id,
+            u.mobile AS patient_phone,
+            COALESCE(hp.aarogyasri_id, '') AS aarogyasri_id,
             d.name AS doctor_name,
             d.specialty AS doctor_specialty,
-            COALESCE(h.name, 'Independent Practice') AS hospital_name
+            COALESCE(h.name, 'Empaneled Hospital') AS hospital_name
         FROM appointments a
-        JOIN users u ON a.user_id = u.id
-        JOIN doctors d ON a.doctor_id = d.id
-        LEFT JOIN doctor_hospitals dh ON d.id = dh.doctor_id AND dh.is_primary = 1
-        LEFT JOIN hospitals h ON dh.hospital_id = h.id
+        LEFT JOIN users u ON a.user_id = u.id
+        LEFT JOIN health_profiles hp ON u.id = hp.user_id
+        LEFT JOIN doctors d ON a.doctor_id = d.id
+        LEFT JOIN hospitals h ON a.hospital_id = h.id
         ORDER BY a.created_at DESC";
 
         $stmt = $pdo->query($query);

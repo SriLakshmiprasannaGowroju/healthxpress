@@ -50,6 +50,8 @@ export default function AppointmentsView() {
       }
     }
     loadLiveAppointments();
+    const interval = setInterval(loadLiveAppointments, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const filtered = appointments.filter(a => {

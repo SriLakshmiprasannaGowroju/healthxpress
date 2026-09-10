@@ -41,6 +41,8 @@ export default function TicketsView() {
       }
     }
     loadLiveTickets();
+    const interval = setInterval(loadLiveTickets, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleTicketResolved = (ticketId, replyText) => {

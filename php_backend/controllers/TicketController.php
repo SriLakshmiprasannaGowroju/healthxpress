@@ -14,7 +14,7 @@ class TicketController {
         $stmt = $pdo->query("SELECT 
             t.*,
             COALESCE(u.name, 'Patient User') AS user_name,
-            COALESCE(u.phone, '+91 9848011223') AS user_phone
+            COALESCE(u.mobile, '+91 9848011223') AS user_phone
         FROM tickets t
         LEFT JOIN users u ON t.user_id = u.id
         ORDER BY t.created_at DESC");

@@ -19,30 +19,35 @@ const DEFAULT_BOOKINGS = [
 export default function BookingsView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [bookings, setBookings] = useState(DEFAULT_BOOKINGS);
-  const [loading, setLoading] = useState(false);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  async function loadAppointments() {
+    try {
+      const res = await healthApi.getAllAppointments();
+      const list = res?.data?.data || res?.data;
+      if (Array.isArray(list)) {
+        setBookings(list.map(b => ({
+          id: b.id,
+          patient: b.patient_name || 'Patient ' + (b.user_id || ''),
+          doctor: b.doctor_name || 'Dr. Assigned',
+          hospital: b.hospital_name || 'Empaneled Hospital',
+          datetime: `${b.appointment_date || ''}, ${b.time_slot || ''}`,
+          status: b.booking_status ? (b.booking_status.charAt(0).toUpperCase() + b.booking_status.slice(1)) : 'Confirmed',
+          payment: b.payment_status ? (b.payment_status.charAt(0).toUpperCase() + b.payment_status.slice(1)) : 'Paid',
+        })));
+      }
+    } catch (err) {
+      console.warn('Could not load live appointments:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function loadAppointments() {
-      try {
-        const res = await healthApi.getAllAppointments();
-        const list = res?.data?.data || res?.data;
-        if (Array.isArray(list) && list.length > 0) {
-          setBookings(list.map(b => ({
-            id: b.id,
-            patient: b.patient_name || 'Patient ' + (b.user_id || ''),
-            doctor: b.doctor_name || 'Dr. Assigned',
-            hospital: b.hospital_name || 'Empaneled Hospital',
-            datetime: `${b.appointment_date || ''}, ${b.time_slot || ''}`,
-            status: b.booking_status ? (b.booking_status.charAt(0).toUpperCase() + b.booking_status.slice(1)) : 'Confirmed',
-            payment: b.payment_status ? (b.payment_status.charAt(0).toUpperCase() + b.payment_status.slice(1)) : 'Paid',
-          })));
-        }
-      } catch (err) {
-        console.warn('Could not load live appointments, using snapshot:', err);
-      }
-    }
     loadAppointments();
+    const timer = setInterval(loadAppointments, 10000); // 10s auto-refresh
+    return () => clearInterval(timer);
   }, []);
 
   const filtered = bookings.filter(b => {
@@ -159,15 +164,9 @@ export default function BookingsView() {
       </table>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderTop: '1px solid var(--border-light)', fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-        <span>Showing 1 to {filtered.length} of 3,248 bookings</span>
+        <span>Showing {filtered.length} of {bookings.length} live bookings (Hostinger MySQL)</span>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="btn-outline" style={{ padding: '4px 10px' }}>&lt;</button>
           <button className="btn-primary" style={{ padding: '4px 12px' }}>1</button>
-          <button className="btn-outline" style={{ padding: '4px 10px' }}>2</button>
-          <button className="btn-outline" style={{ padding: '4px 10px' }}>3</button>
-          <span style={{ padding: '4px 6px' }}>...</span>
-          <button className="btn-outline" style={{ padding: '4px 10px' }}>464</button>
-          <button className="btn-outline" style={{ padding: '4px 10px' }}>&gt;</button>
         </div>
       </div>
     </div>

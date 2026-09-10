@@ -39,6 +39,8 @@ export default function PaymentsView() {
       }
     }
     loadLivePayments();
+    const interval = setInterval(loadLivePayments, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const totalGross = payments.reduce((acc, curr) => acc + curr.numericAmount, 0);

@@ -24,13 +24,13 @@ export default function UsersView() {
             setUsers(list.map(u => ({
               id: u.id,
               name: u.name,
-              phone: u.phone,
+              phone: u.phone || u.mobile || '+91 9848011223',
               email: u.email || 'patient@healthexpress.ai',
               aarogyasri: u.aarogyasri_id || 'AROG' + u.id.replace('USR-', ''),
               age: u.age || 28,
               gender: u.gender || 'Male',
               address: u.address || (u.city ? `${u.city}, ${u.state || 'Telangana'}` : 'Madhapur, Hyderabad'),
-              emergencyContact: u.emergency_contact || u.emergency_contact_phone || 'Priya Sharma (9876500001)',
+              emergencyContact: u.emergency_contact || 'Priya Sharma (9876500001)',
               joined: u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '18 May 2024',
               status: 'Active',
               bloodGroup: u.blood_group || 'B+',
@@ -47,6 +47,8 @@ export default function UsersView() {
       }
     }
     loadLiveUsers();
+    const interval = setInterval(loadLiveUsers, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const filtered = users.filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase()) || u.phone.includes(searchTerm) || (u.aarogyasri && u.aarogyasri.toLowerCase().includes(searchTerm.toLowerCase())));
