@@ -15,6 +15,11 @@ class CartCheckoutScreen extends StatelessWidget {
     final auth = context.watch<AuthProvider>();
     final pharmacyProv = context.watch<PharmacyProvider>();
     final fulfillingStore = pharmacyProv.cartStore ?? pharmacyProv.selectedStore ?? pharmacyProv.medicalStores[0];
+    final deliveryAddress = pharmacyProv.selectedAddress.isNotEmpty
+        ? pharmacyProv.selectedAddress
+        : (auth.currentUser.address.isNotEmpty
+            ? auth.currentUser.address
+            : 'Live GPS Current Location');
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -118,7 +123,7 @@ class CartCheckoutScreen extends StatelessWidget {
                             children: [
                               const Text('Delivering to Address', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
                               const SizedBox(height: 2),
-                              Text(pharmacyProv.selectedAddress, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                              Text(deliveryAddress, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                               const SizedBox(height: 6),
                               Text(
                                 'Recipient: ${auth.currentUser.name} (${auth.currentUser.phone})',

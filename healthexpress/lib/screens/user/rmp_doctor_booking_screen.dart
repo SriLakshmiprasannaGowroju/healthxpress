@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/production_database.dart';
 import '../../models/doctor_model.dart';
+import '../../providers/auth_provider.dart';
+import '../common/address_selection_modal.dart';
 import 'book_appointment_screen.dart';
 
 class RmpDoctorBookingScreen extends StatefulWidget {
@@ -44,6 +47,7 @@ class _RmpDoctorBookingScreenState extends State<RmpDoctorBookingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
     // Get all RMP doctors & doorstep providers
     List<DoctorModel> rmpDocs = ProductionDatabase.doctors.where((d) {
       return d.isRmpDoctor || d.supportedTypes.contains(ConsultationType.homeVisitRMP);
@@ -114,32 +118,37 @@ class _RmpDoctorBookingScreenState extends State<RmpDoctorBookingScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. Current Location Strip
-            Container(
-              color: const Color(0xFFF1F5F9),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                children: [
-                  const Icon(Icons.location_on_rounded, size: 16, color: Color(0xFF0D9488)),
-                  const SizedBox(width: 6),
-                  const Expanded(
-                    child: Text(
-                      'Delivering care to: Flat 402, Aditya Heights, Madhapur, Hyderabad',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+            InkWell(
+              onTap: () => AddressSelectionModal.show(context),
+              child: Container(
+                color: const Color(0xFFF1F5F9),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_on_rounded, size: 16, color: Color(0xFF0D9488)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        auth.currentUser.address.isNotEmpty
+                            ? 'Delivering care to: ${auth.currentUser.address}'
+                            : 'Delivering care to: Live Current Location',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: const Text('Change', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF0D9488))),
                     ),
-                    child: const Text('Change', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF0D9488))),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 

@@ -324,7 +324,7 @@ class _BasicRegistrationScreenState extends State<BasicRegistrationScreen> {
       aarogyasriId: aarogyasriId.isNotEmpty ? aarogyasriId : 'AROG${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}',
       age: _age.toInt(),
       gender: _selectedGender,
-      address: address.isNotEmpty ? address : 'Plot 402, Sri Sai Nilayam, Madhapur, Hyderabad, Telangana',
+      address: address,
       latitude: _liveLat,
       longitude: _liveLng,
       emergencyContactName: emergencyName,

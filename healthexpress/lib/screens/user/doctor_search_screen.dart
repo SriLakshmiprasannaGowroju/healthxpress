@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/production_database.dart';
 import '../../models/doctor_model.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
+import '../../services/location_service.dart';
 import 'doctor_detail_screen.dart';
 
 class DoctorSearchScreen extends StatefulWidget {
@@ -44,7 +47,10 @@ class _DoctorSearchScreenState extends State<DoctorSearchScreen> {
 
   Future<void> _fetchLiveDoctors() async {
     try {
-      final remoteDoctors = await ApiService.fetchDoctors();
+      final loc = await LocationService.getLivePosition();
+      final lat = loc?['lat'] as double?;
+      final lng = loc?['lng'] as double?;
+      final remoteDoctors = await ApiService.fetchDoctors(latitude: lat, longitude: lng);
       if (remoteDoctors.isNotEmpty && mounted) {
         setState(() {
           _doctorsList = remoteDoctors;
@@ -81,6 +87,11 @@ class _DoctorSearchScreenState extends State<DoctorSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final locationLabel = auth.currentUser.address.isNotEmpty
+        ? auth.currentUser.address.split(',').take(2).join(', ')
+        : 'Live GPS Location';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -98,7 +109,14 @@ class _DoctorSearchScreenState extends State<DoctorSearchScreen> {
               children: [
                 const Icon(Icons.location_on_rounded, size: 12, color: AppColors.primary),
                 const SizedBox(width: 4),
-                Text('Hyderabad, Telangana', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                Expanded(
+                  child: Text(
+                    locationLabel,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
           ],

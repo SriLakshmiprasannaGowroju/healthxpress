@@ -160,7 +160,12 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
-                          'Deliver to: ${pharmacyProv.selectedAddress.split(',').first} ▼',
+                          () {
+                            final addr = pharmacyProv.selectedAddress.isNotEmpty
+                                ? pharmacyProv.selectedAddress
+                                : (auth.currentUser.address.isNotEmpty ? auth.currentUser.address : 'Live GPS Location');
+                            return 'Deliver to: ${addr.split(',').first.trim()} ▼';
+                          }(),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,

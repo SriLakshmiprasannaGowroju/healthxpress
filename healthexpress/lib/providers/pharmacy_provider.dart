@@ -63,7 +63,7 @@ class PharmacyProvider extends ChangeNotifier {
   // Empty cart by default for clean session
   final List<CartItemModel> _cart = [];
 
-  String _selectedAddress = 'Plot 12, Hitech City Main Rd, Hyderabad, 500081';
+  String _selectedAddress = '';
   String? _uploadedPrescriptionPath;
 
   PharmacyProvider() {

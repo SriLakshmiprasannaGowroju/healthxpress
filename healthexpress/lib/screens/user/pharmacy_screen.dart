@@ -4,6 +4,7 @@ import '../../core/constants/app_illustrations.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/medicine_model.dart';
 import '../../models/medical_store_model.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/pharmacy_provider.dart';
 import '../common/address_selection_modal.dart';
 import 'cart_checkout_screen.dart';
@@ -123,7 +124,13 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
                   const SizedBox(width: 4),
                   Flexible(
                     child: Text(
-                      'Deliver to: ${pharmacyProv.selectedAddress.split(',').first} ▼',
+                      () {
+                        final auth = context.read<AuthProvider>();
+                        final addr = pharmacyProv.selectedAddress.isNotEmpty
+                            ? pharmacyProv.selectedAddress
+                            : (auth.currentUser.address.isNotEmpty ? auth.currentUser.address : 'Live GPS Location');
+                        return 'Deliver to: ${addr.split(',').first.trim()} ▼';
+                      }(),
                       style: TextStyle(fontSize: 11, color: Colors.grey.shade800, fontWeight: FontWeight.bold),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

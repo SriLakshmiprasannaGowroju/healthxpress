@@ -5,6 +5,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/doctor_model.dart';
 import '../../providers/auth_provider.dart';
+import '../common/address_selection_modal.dart';
 import '../common/patient_detail_collection_dialog.dart';
 import 'payment_screen.dart';
 
@@ -100,7 +101,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthProvider>().currentUser;
+    final auth = context.watch<AuthProvider>();
+    final user = auth.currentUser;
     final isHomeVisit = _selectedType == ConsultationType.homeVisitRMP;
 
     return Scaffold(
@@ -386,30 +388,37 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                       child: const Icon(Icons.home_rounded, color: Color(0xFF0F766E), size: 20),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             'Doorstep Patient Address',
                             style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F766E)),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
-                            'Flat 402, Aditya Heights, Madhapur, Hyderabad • Verified',
-                            style: TextStyle(fontSize: 11.5, color: Color(0xFF115E59)),
+                            auth.currentUser.address.isNotEmpty
+                                ? '${auth.currentUser.address} • Live GPS Verified'
+                                : 'Live GPS Current Location • Verified',
+                            style: const TextStyle(fontSize: 11.5, color: Color(0xFF115E59)),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFF5EEAD4)),
+                    InkWell(
+                      onTap: () => AddressSelectionModal.show(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFF5EEAD4)),
+                        ),
+                        child: const Text('Change', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF0F766E))),
                       ),
-                      child: const Text('Change', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF0F766E))),
                     ),
                   ],
                 ),

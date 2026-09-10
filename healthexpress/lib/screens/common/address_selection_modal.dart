@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/pharmacy_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -33,26 +35,35 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
   final _pincodeController = TextEditingController();
   String _addressTag = 'Home';
 
-  final List<Map<String, String>> _savedAddresses = [
-    {
-      'tag': 'Home',
-      'title': 'Flat 402, Cyber Towers View',
-      'subtitle': 'Hitech City, Hyderabad, Telangana - 500081',
-      'icon': 'home',
-    },
-    {
-      'tag': 'Office',
-      'title': 'Level 6, Mindspace Building 12B',
-      'subtitle': 'Madhapur, Hyderabad, Telangana - 500081',
-      'icon': 'work',
-    },
-    {
-      'tag': 'Parents',
-      'title': 'Plot 18, Road No 36',
-      'subtitle': 'Jubilee Hills, Hyderabad, Telangana - 500033',
-      'icon': 'family',
-    },
-  ];
+  List<Map<String, String>> _customSavedAddresses = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedAddresses();
+  }
+
+  Future<void> _loadSavedAddresses() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('custom_saved_addresses');
+      if (raw != null && raw.isNotEmpty) {
+        final List<dynamic> decoded = jsonDecode(raw);
+        if (mounted) {
+          setState(() {
+            _customSavedAddresses = decoded.map((item) => Map<String, String>.from(item)).toList();
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _persistSavedAddresses() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('custom_saved_addresses', jsonEncode(_customSavedAddresses));
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
@@ -71,10 +82,11 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
         setState(() => _isDetectingGps = false);
         if (loc != null) {
           Navigator.of(context).pop();
+          final formatted = loc['address'] as String? ?? '${loc['locality']}, ${loc['city']}';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               backgroundColor: AppColors.success,
-              content: Text('📍 Live GPS Location detected: ${loc['locality']}, ${loc['city']}'),
+              content: Text('📍 Live GPS Address set: $formatted'),
             ),
           );
         } else {
@@ -107,6 +119,16 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
     }
 
     final formatted = '$flat, $area, $city, Telangana - $pin';
+    
+    // Add to saved addresses
+    _customSavedAddresses.add({
+      'tag': _addressTag,
+      'title': flat,
+      'subtitle': '$area, $city - $pin',
+      'full': formatted,
+    });
+    _persistSavedAddresses();
+
     context.read<PharmacyProvider>().setAddress(formatted);
     context.read<AuthProvider>().updateAddress(formatted);
     Navigator.of(context).pop();
@@ -114,7 +136,7 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: AppColors.success,
-        content: Text('Delivery address updated to "$_addressTag"'),
+        content: Text('Delivery address updated to "$_addressTag" ($formatted)'),
       ),
     );
   }
@@ -124,7 +146,9 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
     final pharmacyProv = context.watch<PharmacyProvider>();
     final auth = context.watch<AuthProvider>();
     final userAddress = auth.currentUser.address;
-    final currentAddress = pharmacyProv.selectedAddress;
+    final currentAddress = pharmacyProv.selectedAddress.isNotEmpty 
+        ? pharmacyProv.selectedAddress 
+        : (userAddress.isNotEmpty ? userAddress : 'Live GPS Current Location');
 
     return SafeArea(
       child: Padding(
@@ -154,8 +178,8 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
                       const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Select Delivery Location', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                          Text('15-minute quick doorstep delivery', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                          Text('Select Location Address', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                          Text('Real GPS live coordinate synchronization', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                         ],
                       ),
                     ],
@@ -201,7 +225,7 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary),
                   ),
                   subtitle: const Text(
-                    'Detects precise GPS coordinates & auto-updates location',
+                    'Fetches device GPS coordinates & reverse geocodes real address',
                     style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
                   ),
                   trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.primary),
@@ -210,8 +234,9 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
               ),
 
               if (!_isAddingNew) ...[
+                // Primary Active / Profile Address
                 if (userAddress.isNotEmpty) ...[
-                  const Text('Registered Profile Address', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  const Text('Live Active Address', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
                   const SizedBox(height: 8),
                   Container(
                     margin: const EdgeInsets.only(bottom: 14),
@@ -230,7 +255,7 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
                       ),
                       title: Row(
                         children: [
-                          const Text('Primary Address', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
+                          const Text('Current Location Address', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
                           const SizedBox(width: 8),
                           if (currentAddress == userAddress)
                             Container(
@@ -252,75 +277,77 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
                         auth.updateAddress(userAddress);
                         Navigator.of(context).pop();
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Delivery address set to Primary Profile Address')),
+                          const SnackBar(content: Text('Address set to Current Live Location')),
                         );
                       },
                     ),
                   ),
                 ],
 
-                // Saved Addresses List
-                const Text('Saved Addresses', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                const SizedBox(height: 10),
-                ..._savedAddresses.map((addr) {
-                  final full = '${addr['title']!}, ${addr['subtitle']!}';
-                  final isSelected = currentAddress.contains(addr['title']!) || currentAddress == full;
+                // Saved User Custom Addresses List (if any added by user)
+                if (_customSavedAddresses.isNotEmpty) ...[
+                  const Text('Your Saved Addresses', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  const SizedBox(height: 10),
+                  ..._customSavedAddresses.map((addr) {
+                    final full = addr['full'] ?? '${addr['title']!}, ${addr['subtitle']!}';
+                    final isSelected = currentAddress == full;
 
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primaryLight : Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isSelected ? AppColors.primary : AppColors.border,
-                        width: isSelected ? 1.5 : 1,
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.primaryLight : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected ? AppColors.primary : AppColors.border,
+                          width: isSelected ? 1.5 : 1,
+                        ),
                       ),
-                    ),
-                    child: ListTile(
-                      leading: Icon(
-                        addr['tag'] == 'Home'
-                            ? Icons.home_rounded
-                            : (addr['tag'] == 'Office' ? Icons.business_rounded : Icons.people_rounded),
-                        color: isSelected ? AppColors.primary : AppColors.textMuted,
-                      ),
-                      title: Row(
-                        children: [
-                          Text(addr['tag']!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isSelected ? AppColors.primary : AppColors.textPrimary)),
-                          if (isSelected) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(6)),
-                              child: const Text('ACTIVE', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-                            ),
+                      child: ListTile(
+                        leading: Icon(
+                          addr['tag'] == 'Home'
+                              ? Icons.home_rounded
+                              : (addr['tag'] == 'Office' ? Icons.business_rounded : Icons.location_city_rounded),
+                          color: isSelected ? AppColors.primary : AppColors.textMuted,
+                        ),
+                        title: Row(
+                          children: [
+                            Text(addr['tag']!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isSelected ? AppColors.primary : AppColors.textPrimary)),
+                            if (isSelected) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(6)),
+                                child: const Text('ACTIVE', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
+                        subtitle: Text(
+                          full,
+                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                        ),
+                        trailing: isSelected
+                            ? const Icon(Icons.check_circle_rounded, color: AppColors.primary)
+                            : const Icon(Icons.radio_button_unchecked_rounded, color: AppColors.textMuted),
+                        onTap: () {
+                          pharmacyProv.setAddress(full);
+                          auth.updateAddress(full);
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Address set to ${addr['tag']}')),
+                          );
+                        },
                       ),
-                      subtitle: Text(
-                        '${addr['title']!}\n${addr['subtitle']!}',
-                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                      ),
-                      trailing: isSelected
-                          ? const Icon(Icons.check_circle_rounded, color: AppColors.primary)
-                          : const Icon(Icons.radio_button_unchecked_rounded, color: AppColors.textMuted),
-                      onTap: () {
-                        pharmacyProv.setAddress(full);
-                        auth.updateAddress(full);
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Delivery address set to ${addr['tag']}')),
-                        );
-                      },
-                    ),
-                  );
-                }),
-                const SizedBox(height: 12),
+                    );
+                  }),
+                  const SizedBox(height: 12),
+                ],
 
                 // Button to Add New Address
                 OutlinedButton.icon(
                   onPressed: () => setState(() => _isAddingNew = true),
                   icon: const Icon(Icons.add_location_alt_rounded, color: AppColors.primary),
-                  label: const Text('Add New Delivery Address', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                  label: const Text('Add / Enter New Address', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 48),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -335,7 +362,7 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
                     const Text('Enter Address Details', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
                     TextButton(
                       onPressed: () => setState(() => _isAddingNew = false),
-                      child: const Text('Back to Saved', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12)),
+                      child: const Text('Back', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
                   ],
                 ),
@@ -362,7 +389,7 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
                 TextField(
                   controller: _flatController,
                   decoration: InputDecoration(
-                    labelText: 'House / Flat / Block No.',
+                    labelText: 'House / Flat / Block / Door No.',
                     hintText: 'e.g. Flat 301, Lakeview Residency',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -374,7 +401,7 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
                   controller: _areaController,
                   decoration: InputDecoration(
                     labelText: 'Street / Area / Landmark',
-                    hintText: 'e.g. Road No 10, Near Metro Station',
+                    hintText: 'e.g. Main Road, Near Primary Health Center',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   ),
@@ -387,7 +414,7 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
                       child: TextField(
                         controller: _cityController,
                         decoration: InputDecoration(
-                          labelText: 'City',
+                          labelText: 'City / Town',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         ),
@@ -418,7 +445,7 @@ class _AddressSelectionModalState extends State<AddressSelectionModal> {
                       backgroundColor: AppColors.primary,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Save & Deliver Here', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14)),
+                    child: const Text('Save & Use Address', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14)),
                   ),
                 ),
               ],
