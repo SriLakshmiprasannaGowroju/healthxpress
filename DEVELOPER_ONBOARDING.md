@@ -4,7 +4,55 @@
 
 ---
 
-## 📌 1. Project Overview & Architecture
+## ⚡ 1. Quick-Start Onboarding (For New Developers)
+
+Follow these 3 simple steps to get this entire project up and running in minutes:
+
+### 🔹 Step A: Create a GitHub Personal Access Token (PAT)
+1. Go to [https://github.com/settings/tokens](https://github.com/settings/tokens) (or click **Profile Photo** -> **Settings** -> **Developer settings** -> **Personal access tokens** -> **Tokens (classic)**).
+2. Click **Generate new token** -> **Generate new token (classic)**.
+3. In **Note**, enter `HealthExpress Deployer`.
+4. In **Expiration**, choose `No expiration` or `90 days`.
+5. Under **Select scopes**, check the **`repo`** checkbox (Full control of private repositories).
+6. Click **Generate token** at the bottom and copy the token (starts with `ghp_...`).
+
+---
+
+### 🔹 Step B: Repository Extraction & Setup
+1. **Clone or Extract the Codebase**:
+   ```bash
+   git clone https://github.com/pavanstarkin-tech/healthyxpress_medha.git
+   cd healthyxpress_medha
+   ```
+2. **Automated Migration / Deployment to Your Own GitHub Repository**:
+   Run the universal migration script and paste your token:
+   ```powershell
+   powershell.exe -ExecutionPolicy Bypass -File push_to_new_repo.ps1
+   ```
+   *(For Mac/Linux: `./push_to_new_repo.sh`)*
+   - The script will automatically create a new repo on your GitHub account, push all code to `main`, compile both Flutter & React apps, and deploy live to `gh-pages`!
+
+---
+
+### 🔹 Step C: Master Anti-Gravity IDE / AI Assistant Prompt
+Whenever you open this repository in **Antigravity IDE** or an AI assistant, paste this prompt to immediately onboard the agent:
+
+```markdown
+You are working on the HealthExpress AI production repository. 
+Read `DEVELOPER_ONBOARDING.md` as your primary architectural ground truth.
+
+Key Context:
+1. Flutter Web App (`/healthexpress`) runs the patient/doctor/store frontend with live GPS geolocation, Mapbox GL JS & Leaflet vector maps, and Sarvam AI voice assistant (Telugu/Hindi/English).
+2. Operations Dashboard (`/admin_panel`) is a React 18 + Vite application connecting to Hostinger MySQL REST API (`https://vedvaidyam.com/healthexpress/api`).
+3. Dual-deployment is handled via `deploy.ps1` which builds Flutter for `/` and React Admin for `/admin` and deploys to `gh-pages`.
+4. All active API keys (Mapbox, Sarvam AI, LiveKit, Agora, Firebase, MySQL, Razorpay) are documented in `DEVELOPER_ONBOARDING.md` and `apis.txt`.
+
+Please inspect the active workspace, verify all dependencies, and help me with my next task.
+```
+
+---
+
+## 📌 2. Project Overview & Architecture
 
 HealthExpress AI is an end-to-end intelligent healthcare platform featuring:
 - **Patient / Doctor / Pharmacy Multi-Role Flutter App** (`/healthexpress`): Telehealth, 15-minute emergency pharmacy delivery, ABDM Aarogyasri health records, live hospital discovery, and AI triage.
