@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/vision_analysis_model.dart';
-import '../../widgets/ai_lens_hover_button.dart';
 import 'user_home_screen.dart';
 import 'my_appointments_screen.dart';
 import 'ai_assistant_screen.dart';
@@ -149,21 +148,9 @@ class _UserMainNavState extends State<UserMainNav> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          IndexedStack(
-            index: _currentIndex,
-            children: _screens,
-          ),
-
-          // Floating Hover Camera Lens Button (Top Right / Bottom Right Overlay)
-          if (_currentIndex != 2) // Hide on AI assistant screen to avoid overlap
-            Positioned(
-              bottom: 16,
-              right: 16,
-              child: const AiLensHoverButton(),
-            ),
-        ],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
