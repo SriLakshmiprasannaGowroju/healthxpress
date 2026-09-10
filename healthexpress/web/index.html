@@ -1516,6 +1516,46 @@
         return JSON.stringify({ success: false, error: 'Torch unsupported' });
       }
     };
+
+    // Camera Capture & Image Upload for AI Food / Medicine Lens
+    window.captureCameraPhotoOrGallery = function(useCamera) {
+      return new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        if (useCamera) {
+          input.capture = 'environment';
+        }
+        input.style.display = 'none';
+        document.body.appendChild(input);
+
+        input.onchange = function(e) {
+          const file = e.target.files && e.target.files[0];
+          if (!file) {
+            if (document.body.contains(input)) document.body.removeChild(input);
+            resolve(JSON.stringify({ success: false, error: 'No image selected' }));
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = function(evt) {
+            if (document.body.contains(input)) document.body.removeChild(input);
+            resolve(JSON.stringify({
+              success: true,
+              dataUrl: evt.target.result,
+              fileName: file.name,
+              fileSize: file.size
+            }));
+          };
+          reader.onerror = function() {
+            if (document.body.contains(input)) document.body.removeChild(input);
+            resolve(JSON.stringify({ success: false, error: 'Failed to read file' }));
+          };
+          reader.readAsDataURL(file);
+        };
+
+        input.click();
+      });
+    };
   </script>
 
   <script src="flutter_bootstrap.js" async></script>

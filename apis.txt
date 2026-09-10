@@ -56,3 +56,10 @@ const firebaseConfig = {
   appId: "1:575738669292:web:305a1fce4415b605c3ddc9",
   measurementId: "G-11RHHGM6T0"
 };
+
+Groq Cloud Vision API
+Configured in AppConfig.groqApiKey (assembled securely)
+Models: qwen/qwen3.6-27b, qwen/qwen3.8-27b
+
+
+

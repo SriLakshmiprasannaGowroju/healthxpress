@@ -9,7 +9,9 @@ import '../../providers/ai_assistant_provider.dart';
 import '../../providers/pharmacy_provider.dart';
 import '../common/address_selection_modal.dart';
 import 'ai_assistant_screen.dart';
+import 'ai_lens_scanner_screen.dart';
 import 'ai_voice_call_screen.dart';
+import '../../models/vision_analysis_model.dart';
 import 'doctor_search_screen.dart';
 import 'nearby_hospitals_map_screen.dart';
 import 'pharmacy_screen.dart';
@@ -393,7 +395,84 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 14),
+
+              // AI Vision Lens Scanner Banner (Groq Cloud AI for Food Calories & Tablets)
+              InkWell(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AiLensScannerScreen(initialScope: VisionScope.food),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.5)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF0284C7).withValues(alpha: 0.18),
+                        blurRadius: 14,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF0284C7), Color(0xFF38BDF8)],
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Text(
+                                  'AI Lens: Snap Food & Medicine',
+                                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: Colors.cyanAccent.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text('GROQ AI', style: TextStyle(color: Colors.cyanAccent, fontSize: 8.5, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            const Text(
+                              'Instant calorie counter, nutrition, GI index & tablet medical scope',
+                              style: TextStyle(fontSize: 11, color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.cyanAccent),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
 
               // Quick Actions Grid Header
               const Text(

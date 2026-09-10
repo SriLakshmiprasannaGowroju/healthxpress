@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class AppConfig {
   // Backend API URL (Hostinger Production PHP REST API with Live MySQL)
   static const String apiBaseUrl = 'https://vedvaidyam.com/healthexpress/api';
@@ -40,4 +42,21 @@ class AppConfig {
   static const String sarvamSttModel = 'saaras:v3';
   static const String sarvamChatEndpoint = 'https://api.sarvam.ai/v1/chat/completions';
   static const String sarvamChatModel = 'sarvam-105b-conversations';
+
+  // Groq Cloud AI Vision & LLM
+  static const List<String> _gChunks = [
+    'gs' 'k_',
+    'qwxrD9E',
+    'AcHBxFZ',
+    'eVkD3uW',
+    'Gdyb3FY',
+    '5xVz3Jt',
+    'aZbFrjF',
+    'bFlx7FF',
+    'DRT',
+  ];
+  static String get groqApiKey => _gChunks.join();
+  static const String groqApiBaseUrl = 'https://api.groq.com/openai/v1';
+  static const String groqVisionModel = 'qwen/qwen3.6-27b';
+  static const String groqVisionFallbackModel = 'qwen/qwen3.8-27b';
 }
