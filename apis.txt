@@ -1,0 +1,58 @@
+I will provide all the necessary APIs once we have completed our app dashboard from Firebase to Agora. Everything I will provide. 
+
+
+MySQL
+Management
+Create a New MySQL Database And Database User
+MySQL database name
+u170253497_
+healthexpress
+MySQL username
+u170253497_
+healthexpress
+Password
+Healthxpress_1234567
+
+Minimum 8 characters
+Must contain at least one lowercase letter
+Must contain at least one uppercase letter
+Must contain at least one number
+
+Create
+
+In the Beni folder, create a new folder outside the public_html. 
+Use this remote MySQL database for the backend:
+
+
+
+Do not use localhost or 127.0.0.1.
+Test the connection and report the exact result.
+ ssh -p 65002 u170253497@147.93.101.73
+pass : Honey_comb@@#$%^&d1
+
+map box
+pk.eyJ1IjoicGF2YW5rdW1hcnN3YW15IiwiYSI6ImNtNnc1c3ZpdTBkdGgyanM5b25rN2ZqcncifQ.Ls1e2W6rx3apoBsStWa5Ow
+
+Razorpay
+key_id	key_secret
+rzp_live_StBUehIpeULYuL	M76UWnmNsVE7hU5QrkriZuor
+
+
+Agora
+app id 7c9641fb497543d2b01fe6fe5fe0af15
+primary certificate 29afb318421747818086445f230f3c61
+
+Sarvam AI
+api-subscription-key: sk_n4tzuy3c_JIUK6l5ExNHHGoiiAGwvroYh
+model: sarvam-105b-conversations
+
+firebase 
+const firebaseConfig = {
+  apiKey: "AIzaSyCU7Psyt8Rl5kQScIDAavvleuyNjkhVFxo",
+  authDomain: "healthexpress-1.firebaseapp.com",
+  projectId: "healthexpress-1",
+  storageBucket: "healthexpress-1.firebasestorage.app",
+  messagingSenderId: "575738669292",
+  appId: "1:575738669292:web:305a1fce4415b605c3ddc9",
+  measurementId: "G-11RHHGM6T0"
+};

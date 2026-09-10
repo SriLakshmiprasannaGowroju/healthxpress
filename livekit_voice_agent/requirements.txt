@@ -1,0 +1,6 @@
+livekit-agents[sarvam,silero]
+livekit-plugins-sarvam
+livekit-plugins-silero
+python-dotenv
+aiohttp
+requests
