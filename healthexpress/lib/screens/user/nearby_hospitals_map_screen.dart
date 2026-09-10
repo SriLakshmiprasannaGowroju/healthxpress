@@ -295,7 +295,7 @@ class _NearbyHospitalsMapScreenState extends State<NearbyHospitalsMapScreen> {
           height: sizeH,
           anchor: 'bottom',
           iconHtml: '''
-            <div style="position: relative; width: ${sizeW}px; height: ${sizeH}px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35)); transform: ${isSelected ? 'scale(1.15)' : 'scale(1.0)'}; transition: transform 0.2s ease;">
+            <div style="position: relative; width: ${sizeW}px; height: ${sizeH}px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35)); will-change: transform;">
               <svg width="$sizeW" height="$sizeH" viewBox="0 0 38 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <!-- Pin Pointer Body -->
                 <path d="M19 0C8.50659 0 0 8.50659 0 19C0 29.5 19 48 19 48C19 48 38 29.5 38 19C38 8.50659 29.4934 0 19 0Z" fill="$pinColor"/>

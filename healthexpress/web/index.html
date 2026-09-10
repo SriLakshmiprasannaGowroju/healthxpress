@@ -31,6 +31,19 @@
   <!-- Leaflet & OpenStreetMap Fallback Engine -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    /* Force Mapbox and Leaflet markers to stay 100% locked to map coordinates during panning/drag gestures */
+    .mapboxgl-marker,
+    .healthexpress-pin-marker,
+    .leaflet-marker-icon,
+    .healthexpress-leaflet-custom {
+      transition: none !important;
+      -webkit-transition: none !important;
+      animation: none !important;
+      will-change: transform !important;
+      pointer-events: auto !important;
+    }
+  </style>
   <!-- jsQR Universal Real-Time Camera QR Code Decoder -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   <!-- Firebase Web SDK for Real Google Sign-In Popup with COOP Fallback -->
@@ -1057,7 +1070,8 @@
         el.style.alignItems = "center";
         el.style.justifyContent = "center";
         el.style.cursor = "pointer";
-        el.style.transition = "transform 0.2s ease";
+        el.style.transition = "none";
+        el.style.willChange = "transform";
         el.style.background = "transparent";
         el.style.border = "none";
         el.style.padding = "0";
@@ -1071,6 +1085,9 @@
 
         const mWidth = opts.width || 38;
         const mHeight = opts.height || 48;
+        const isCenter = opts.anchor === 'center';
+        const anchorX = mWidth / 2;
+        const anchorY = isCenter ? (mHeight / 2) : mHeight;
 
         if (entry.type === 'mapbox') {
           const marker = new mapboxgl.Marker({
@@ -1082,10 +1099,10 @@
             .addTo(entry.instance);
 
           if (opts.popupHtml) {
-            const popup = new mapboxgl.Popup({ offset: [0, -mHeight], maxWidth: "320px", closeButton: true }).setHTML(opts.popupHtml);
+            const popup = new mapboxgl.Popup({ offset: [0, -anchorY], maxWidth: "320px", closeButton: true }).setHTML(opts.popupHtml);
             marker.setPopup(popup);
           } else if (opts.popupText) {
-            const popup = new mapboxgl.Popup({ offset: [0, -mHeight] }).setHTML("<strong>" + opts.popupText + "</strong>");
+            const popup = new mapboxgl.Popup({ offset: [0, -anchorY] }).setHTML("<strong>" + opts.popupText + "</strong>");
             marker.setPopup(popup);
           }
 
@@ -1097,8 +1114,8 @@
             className: 'healthexpress-leaflet-custom',
             html: el.outerHTML,
             iconSize: [mWidth, mHeight],
-            iconAnchor: [mWidth / 2, mHeight],
-            popupAnchor: [0, -mHeight]
+            iconAnchor: [anchorX, anchorY],
+            popupAnchor: [0, -anchorY]
           });
 
           const lmarker = L.marker([lat, lng], { icon: customIcon }).addTo(entry.instance);
