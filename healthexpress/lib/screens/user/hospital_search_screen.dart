@@ -3,6 +3,7 @@ import '../../core/theme/app_colors.dart';
 import '../../data/production_database.dart';
 import '../../models/hospital_model.dart';
 import '../../services/api_service.dart';
+import '../../services/location_service.dart';
 import 'hospital_detail_screen.dart';
 
 class HospitalSearchScreen extends StatefulWidget {
@@ -27,11 +28,29 @@ class _HospitalSearchScreenState extends State<HospitalSearchScreen> {
 
   Future<void> _fetchLiveHospitals() async {
     try {
-      final remoteHospitals = await ApiService.fetchHospitals();
-      if (remoteHospitals.isNotEmpty && mounted) {
+      final loc = await LocationService.getLivePosition();
+      final lat = loc?['lat'] as double? ?? 17.4420;
+      final lng = loc?['lng'] as double? ?? 78.3880;
+      final cityName = loc != null ? '${loc['locality']}, ${loc['city']}' : null;
+
+      final liveHospitals = await ApiService.fetchLiveNearbyHospitals(
+        latitude: lat,
+        longitude: lng,
+        cityName: cityName,
+        limit: 35,
+      );
+
+      if (liveHospitals.isNotEmpty && mounted) {
         setState(() {
-          _hospitalsList = remoteHospitals;
+          _hospitalsList = liveHospitals;
         });
+      } else {
+        final remoteHospitals = await ApiService.fetchHospitals(latitude: lat, longitude: lng);
+        if (remoteHospitals.isNotEmpty && mounted) {
+          setState(() {
+            _hospitalsList = remoteHospitals;
+          });
+        }
       }
     } catch (_) {}
   }

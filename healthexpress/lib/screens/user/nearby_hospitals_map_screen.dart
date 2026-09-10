@@ -83,11 +83,12 @@ class _NearbyHospitalsMapScreenState extends State<NearbyHospitalsMapScreen> {
 
   Future<void> _loadAllHospitals() async {
     try {
-      // 1. Fetch real live hospitals from Mapbox Search POI API around user's live GPS
-      final mapboxLiveList = await ApiService.fetchMapboxLiveHospitals(
+      // 1. Fetch real live hospitals from OSM Overpass + Mapbox POI Radar around user's live GPS
+      final liveNearbyList = await ApiService.fetchLiveNearbyHospitals(
         latitude: _userLat,
         longitude: _userLng,
-        limit: 30,
+        cityName: _userCityName,
+        limit: 40,
       );
 
       // 2. Fetch empaneled hospitals from backend
@@ -96,8 +97,8 @@ class _NearbyHospitalsMapScreenState extends State<NearbyHospitalsMapScreen> {
       final combined = <HospitalModel>[];
       final seenNames = <String>{};
 
-      // Add backend / empaneled top hospitals first with verified photos
-      for (final h in ProductionDatabase.hospitals) {
+      // Priority 1: Add live nearby hospitals located around user's current city/area
+      for (final h in liveNearbyList) {
         final key = h.name.toLowerCase().trim();
         if (!seenNames.contains(key)) {
           seenNames.add(key);
@@ -105,26 +106,95 @@ class _NearbyHospitalsMapScreenState extends State<NearbyHospitalsMapScreen> {
         }
       }
 
-      // Add live Mapbox POI hospitals
-      for (final h in mapboxLiveList) {
-        final key = h.name.toLowerCase().trim();
-        if (!seenNames.contains(key)) {
-          seenNames.add(key);
-          combined.add(h);
-        }
-      }
-
+      // Priority 2: Add backend hospitals with dynamic recalculated distance
       for (final h in backendList) {
         final key = h.name.toLowerCase().trim();
         if (!seenNames.contains(key)) {
           seenNames.add(key);
-          combined.add(h);
+          final recalculatedDist = ApiService.calculateDistanceKm(_userLat, _userLng, h.latitude, h.longitude);
+          combined.add(
+            HospitalModel(
+              id: h.id,
+              name: h.name,
+              logoUrl: h.logoUrl,
+              bannerUrl: h.bannerUrl,
+              hospitalType: h.hospitalType,
+              location: h.location,
+              address: h.address,
+              city: h.city,
+              state: h.state,
+              pincode: h.pincode,
+              latitude: h.latitude,
+              longitude: h.longitude,
+              rating: h.rating,
+              reviewCount: h.reviewCount,
+              distanceKm: recalculatedDist,
+              doctorCount: h.doctorCount,
+              specialtyCount: h.specialtyCount,
+              bedCount: h.bedCount,
+              departments: h.departments,
+              facilities: h.facilities,
+              phone: h.phone,
+              emergencyPhone: h.emergencyPhone,
+              email: h.email,
+              website: h.website,
+              description: h.description,
+              workingHours: h.workingHours,
+              is24x7: h.is24x7,
+            ),
+          );
         }
       }
+
+      // Priority 3: Add production fallback hospitals if list is small, with dynamic recalculated distance
+      if (combined.length < 5) {
+        for (final h in ProductionDatabase.hospitals) {
+          final key = h.name.toLowerCase().trim();
+          if (!seenNames.contains(key)) {
+            seenNames.add(key);
+            final recalculatedDist = ApiService.calculateDistanceKm(_userLat, _userLng, h.latitude, h.longitude);
+            combined.add(
+              HospitalModel(
+                id: h.id,
+                name: h.name,
+                logoUrl: h.logoUrl,
+                bannerUrl: h.bannerUrl,
+                hospitalType: h.hospitalType,
+                location: h.location,
+                address: h.address,
+                city: h.city,
+                state: h.state,
+                pincode: h.pincode,
+                latitude: h.latitude,
+                longitude: h.longitude,
+                rating: h.rating,
+                reviewCount: h.reviewCount,
+                distanceKm: recalculatedDist,
+                doctorCount: h.doctorCount,
+                specialtyCount: h.specialtyCount,
+                bedCount: h.bedCount,
+                departments: h.departments,
+                facilities: h.facilities,
+                phone: h.phone,
+                emergencyPhone: h.emergencyPhone,
+                email: h.email,
+                website: h.website,
+                description: h.description,
+                workingHours: h.workingHours,
+                is24x7: h.is24x7,
+              ),
+            );
+          }
+        }
+      }
+
+      // Sort strictly by closest proximity to user (nearest hospitals first!)
+      combined.sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
 
       if (combined.isNotEmpty && mounted) {
         setState(() {
           _hospitals = combined;
+          _selectedHospitalIndex = 0;
         });
       }
     } catch (_) {
