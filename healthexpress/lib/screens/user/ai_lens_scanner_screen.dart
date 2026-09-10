@@ -6,6 +6,8 @@ import '../../services/device_native_service.dart';
 import '../../services/groq_vision_service.dart';
 import 'medication_reminders_screen.dart';
 import 'pharmacy_screen.dart';
+import 'doctor_search_screen.dart';
+import 'lab_tests_screen.dart';
 
 class AiLensScannerScreen extends StatefulWidget {
   final VisionScope initialScope;
@@ -38,7 +40,7 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
 
   late AnimationController _scanLineController;
 
-  // Pre-loaded realistic sample data for instant exploration
+  // Pre-loaded realistic sample data for instant exploration across 3 scopes
   final List<Map<String, dynamic>> _foodSamples = [
     {
       'title': 'Masala Dosa',
@@ -70,6 +72,37 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
       'hint': 'Cottage Cheese cubes in rich tomato cashew gravy with 2 tandoori rotis',
       'icon': '🍲',
       'tag': 'Vegetarian Protein',
+      'b64': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    },
+  ];
+
+  final List<Map<String, dynamic>> _infectionSamples = [
+    {
+      'title': 'Skin Allergy Rash',
+      'hint': 'Contact dermatitis allergic red rash with small bumps on forearm',
+      'icon': '🦠',
+      'tag': 'Skin Rash / Allergy',
+      'b64': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8BQz0AEYBxVSF+FABJADveWkH6oAAAAAElFTkSuQmCC',
+    },
+    {
+      'title': 'Eye Conjunctivitis',
+      'hint': 'Red eye with conjunctival injection, mild discharge and watering',
+      'icon': '👁️',
+      'tag': 'Eye Infection',
+      'b64': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    },
+    {
+      'title': 'Fungal Ringworm',
+      'hint': 'Tinea corporis circular itchy scaly ring rash on upper torso',
+      'icon': '🔬',
+      'tag': 'Fungal Infection',
+      'b64': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8BQz0AEYBxVSF+FABJADveWkH6oAAAAAElFTkSuQmCC',
+    },
+    {
+      'title': 'Eczema Flare-up',
+      'hint': 'Dry itchy erythematous scaling patches on inner elbow folds',
+      'icon': '🩹',
+      'tag': 'Atopic Eczema',
       'b64': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
     },
   ];
@@ -147,16 +180,20 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
       _isAnalyzing = true;
       _capturedImageBase64 = base64Image;
       _analysisStatus = _selectedScope == VisionScope.food
-          ? 'Analyzing dish, calories & macro nutrients via Groq AI...'
-          : 'Extracting medicine composition, dosage & clinical scope...';
+          ? 'Analyzing dish, calories & macronutrients via Groq AI...'
+          : (_selectedScope == VisionScope.infection
+              ? 'Analyzing infection symptom, causes, medications & specialist care...'
+              : 'Extracting medicine composition, dosage & clinical scope...');
       _chatHistory.clear();
     });
 
     try {
       final effectiveHint = hint ??
           (_selectedScope == VisionScope.food
-              ? 'Analyze this food dish. Identify exact calories, nutrients, glycemic index, and related healthier dishes.'
-              : 'Analyze this tablet / medicine. Process strictly in medical scope with active composition, indications, warnings and dosage.');
+              ? 'Analyze this food dish. Identify calories, protein, carbs, fats, fiber, glycemic index and healthier related dishes.'
+              : (_selectedScope == VisionScope.infection
+                  ? 'Analyze this infection / skin symptom / disease. Identify clinical condition, severity, causes, recommended medications, lab tests, and doctor specialist.'
+                  : 'Analyze this tablet / medicine. Process strictly in medical scope with active composition, indications, warnings and dosage.'));
 
       final result = await GroqVisionService.analyzeImage(
         base64Image: base64Image,
@@ -221,7 +258,7 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
           children: [
             Container(
               padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: AppColors.aiAssistantGradient,
                 shape: BoxShape.circle,
               ),
@@ -250,7 +287,7 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
       body: SafeArea(
         child: Column(
           children: [
-            // Scope Selector Switcher
+            // Scope Selector Switcher (3 Scopes)
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               padding: const EdgeInsets.all(4),
@@ -263,14 +300,21 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
                 children: [
                   Expanded(
                     child: _ScopeTab(
-                      title: '🥗 Food & Calories',
+                      title: '🥗 Food / Calories',
                       isSelected: _selectedScope == VisionScope.food,
                       onTap: () => setState(() => _selectedScope = VisionScope.food),
                     ),
                   ),
                   Expanded(
                     child: _ScopeTab(
-                      title: '💊 Medicine & Tablets',
+                      title: '🦠 Infection / Disease',
+                      isSelected: _selectedScope == VisionScope.infection,
+                      onTap: () => setState(() => _selectedScope = VisionScope.infection),
+                    ),
+                  ),
+                  Expanded(
+                    child: _ScopeTab(
+                      title: '💊 Medicines / Rx',
                       isSelected: _selectedScope == VisionScope.medicine,
                       onTap: () => setState(() => _selectedScope = VisionScope.medicine),
                     ),
@@ -292,6 +336,10 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
   }
 
   Widget _buildScannerCameraView() {
+    final samples = _selectedScope == VisionScope.food
+        ? _foodSamples
+        : (_selectedScope == VisionScope.infection ? _infectionSamples : _medicineSamples);
+
     return Column(
       children: [
         // Camera Viewfinder Box
@@ -322,8 +370,8 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: 80,
-                          height: 80,
+                          width: 76,
+                          height: 76,
                           decoration: BoxDecoration(
                             color: const Color(0xFF1E293B),
                             shape: BoxShape.circle,
@@ -332,16 +380,18 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
                           child: Icon(
                             _selectedScope == VisionScope.food
                                 ? Icons.restaurant_rounded
-                                : Icons.medication_rounded,
-                            size: 40,
+                                : (_selectedScope == VisionScope.infection ? Icons.coronavirus_rounded : Icons.medication_rounded),
+                            size: 38,
                             color: AppColors.primary,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 14),
                         Text(
                           _selectedScope == VisionScope.food
                               ? 'Point at any dish, meal or food item'
-                              : 'Point at tablet, pill strip, syrup or Rx',
+                              : (_selectedScope == VisionScope.infection
+                                  ? 'Point at skin rash, symptom, eye or infection'
+                                  : 'Point at tablet strip, pill, syrup or Rx'),
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 13,
@@ -360,7 +410,9 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
                           child: Text(
                             _selectedScope == VisionScope.food
                                 ? '⚡ Calorie Counter • Macros • Glycemic Index'
-                                : '🛡️ Strict Medical Scope • Composition • Dosage',
+                                : (_selectedScope == VisionScope.infection
+                                    ? '🏥 Disease Diagnostics • Medications • Doctor Booking'
+                                    : '🛡️ Strict Medical Scope • Composition • Dosage'),
                             style: const TextStyle(
                               color: AppColors.primaryLight,
                               fontSize: 11,
@@ -423,14 +475,17 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
                               ),
                             ),
                             const SizedBox(height: 20),
-                            Text(
-                              _analysisStatus,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              child: Text(
+                                _analysisStatus,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
-                              textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 8),
                             const Text(
@@ -456,7 +511,7 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
               Text(
                 _selectedScope == VisionScope.food
                     ? 'Explore Food Samples'
-                    : 'Explore Medical Tablet Samples',
+                    : (_selectedScope == VisionScope.infection ? 'Explore Infection Samples' : 'Explore Medicine Samples'),
                 style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 12,
@@ -476,13 +531,9 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 14),
-            itemCount: _selectedScope == VisionScope.food
-                ? _foodSamples.length
-                : _medicineSamples.length,
+            itemCount: samples.length,
             itemBuilder: (context, idx) {
-              final item = _selectedScope == VisionScope.food
-                  ? _foodSamples[idx]
-                  : _medicineSamples[idx];
+              final item = samples[idx];
               return InkWell(
                 onTap: () => _processImage(item['b64'] as String, hint: item['hint'] as String),
                 borderRadius: BorderRadius.circular(14),
@@ -576,7 +627,7 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
               IconButton(
                 icon: const Icon(Icons.flash_on_rounded, color: Colors.amber, size: 28),
                 onPressed: () {
-                  final sample = _selectedScope == VisionScope.food ? _foodSamples[0] : _medicineSamples[0];
+                  final sample = samples[0];
                   _processImage(sample['b64'] as String, hint: sample['hint'] as String);
                 },
                 tooltip: 'Instant Scan Demo',
@@ -591,6 +642,7 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
   Widget _buildAnalysisResultView() {
     final res = _analysisResult!;
     final isFood = res.isFood;
+    final isInfection = res.isInfection;
 
     return Container(
       decoration: const BoxDecoration(
@@ -618,10 +670,12 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
                           errorBuilder: (_, __, ___) => Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: isFood ? const Color(0xFFFEF3C7) : const Color(0xFFE0E7FF),
+                              color: isFood
+                                  ? const Color(0xFFFEF3C7)
+                                  : (isInfection ? const Color(0xFFFEE2E2) : const Color(0xFFE0E7FF)),
                               shape: BoxShape.circle,
                             ),
-                            child: Text(isFood ? '🥗' : '💊', style: const TextStyle(fontSize: 18)),
+                            child: Text(isFood ? '🥗' : (isInfection ? '🦠' : '💊'), style: const TextStyle(fontSize: 18)),
                           ),
                         ),
                       )
@@ -629,17 +683,21 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: isFood ? const Color(0xFFFEF3C7) : const Color(0xFFE0E7FF),
+                          color: isFood
+                              ? const Color(0xFFFEF3C7)
+                              : (isInfection ? const Color(0xFFFEE2E2) : const Color(0xFFE0E7FF)),
                           shape: BoxShape.circle,
                         ),
-                        child: Text(isFood ? '🥗' : '💊', style: const TextStyle(fontSize: 18)),
+                        child: Text(isFood ? '🥗' : (isInfection ? '🦠' : '💊'), style: const TextStyle(fontSize: 18)),
                       ),
                     const SizedBox(width: 10),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          isFood ? 'Food & Nutrition Analysis' : 'Medical & Clinical Scope',
+                          isFood
+                              ? 'Food & Nutrition Analysis'
+                              : (isInfection ? 'Infection & Clinical Diagnosis' : 'Medicine & Clinical Scope'),
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -680,11 +738,15 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
                       gradient: LinearGradient(
                         colors: isFood
                             ? [const Color(0xFFFFFBEB), const Color(0xFFFEF3C7)]
-                            : [const Color(0xFFF0FDF4), const Color(0xFFDCFCE7)],
+                            : (isInfection
+                                ? [const Color(0xFFFFF1F2), const Color(0xFFFFE4E6)]
+                                : [const Color(0xFFF0FDF4), const Color(0xFFDCFCE7)]),
                       ),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: isFood ? const Color(0xFFFDE68A) : const Color(0xFF86EFAC),
+                        color: isFood
+                            ? const Color(0xFFFDE68A)
+                            : (isInfection ? const Color(0xFFFDA4AF) : const Color(0xFF86EFAC)),
                       ),
                     ),
                     child: Column(
@@ -697,7 +759,7 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
                               child: Text(
                                 res.name,
                                 style: const TextStyle(
-                                  fontSize: 19,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.w900,
                                   color: AppColors.textPrimary,
                                 ),
@@ -716,6 +778,26 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
+                                  ),
+                                ),
+                              )
+                            else if (isInfection)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: res.infectionSeverity.toLowerCase().contains('urgent')
+                                      ? Colors.red
+                                      : (res.infectionSeverity.toLowerCase().contains('mod')
+                                          ? Colors.orange.shade800
+                                          : AppColors.success),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  'Severity: ${res.infectionSeverity}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
                                   ),
                                 ),
                               )
@@ -766,7 +848,7 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
                   ),
                   const SizedBox(height: 18),
 
-                  // FOOD SCOPE DETAILS
+                  // 1. FOOD SCOPE DETAILS
                   if (isFood) ...[
                     // Macronutrients Strip
                     const Text('Nutritional Breakdown', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
@@ -859,7 +941,7 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(color: const Color(0xFFF0FDF4), shape: BoxShape.circle),
+                                decoration: const BoxDecoration(color: Color(0xFFF0FDF4), shape: BoxShape.circle),
                                 child: const Icon(Icons.eco_rounded, color: AppColors.success, size: 20),
                               ),
                               const SizedBox(width: 12),
@@ -886,8 +968,208 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
                       }),
                       const SizedBox(height: 16),
                     ],
+                  ] else if (isInfection) ...[
+                    // 2. INFECTION & DISEASE DIAGNOSTICS
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF1F2),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFFECDD3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.medical_services_rounded, color: Color(0xFFBE123C), size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Recommended Specialist: ${res.recommendedSpecialist}',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFBE123C)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Category: ${res.infectionCategory}',
+                            style: const TextStyle(fontSize: 11.5, color: Color(0xFF9F1239)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Primary Action: Book Doctor Appointment
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const DoctorSearchScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.calendar_month_rounded, color: Colors.white, size: 18),
+                        label: Text(
+                          'Book ${res.recommendedSpecialist} Appointment',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFBE123C),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Probable Causes
+                    if (res.probableCauses.isNotEmpty) ...[
+                      const Text('Probable Underlying Causes', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                      const SizedBox(height: 6),
+                      ...res.probableCauses.map((c) => _BulletItem(text: c, isPositive: false)),
+                      const SizedBox(height: 14),
+                    ],
+
+                    // Recommended Medications / Creams / First-Line Therapy
+                    if (res.infectionMedications.isNotEmpty) ...[
+                      const Text('Recommended First-Line Medications', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                      const SizedBox(height: 8),
+                      ...res.infectionMedications.map((med) {
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: const BoxDecoration(color: Color(0xFFEFF6FF), shape: BoxShape.circle),
+                                child: const Icon(Icons.medication_rounded, color: AppColors.primary, size: 18),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            med.name,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: AppColors.textPrimary),
+                                          ),
+                                        ),
+                                        if (med.requiresPrescription)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(6)),
+                                            child: const Text('Rx Req', style: TextStyle(color: Colors.amber, fontSize: 9, fontWeight: FontWeight.bold)),
+                                          ),
+                                      ],
+                                    ),
+                                    Text(med.category, style: const TextStyle(fontSize: 10.5, color: AppColors.primary)),
+                                    const SizedBox(height: 2),
+                                    Text(med.dosage, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => const PharmacyScreen()),
+                                );
+                              },
+                              icon: const Icon(Icons.local_pharmacy_rounded, size: 16, color: AppColors.primary),
+                              label: const Text('Order at 15-Min Pharmacy', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5, color: AppColors.primary)),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: AppColors.primary),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => const LabTestsScreen()),
+                                );
+                              },
+                              icon: const Icon(Icons.biotech_rounded, size: 16, color: Color(0xFF7C3AED)),
+                              label: const Text('Book Lab Tests', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5, color: Color(0xFF7C3AED))),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Color(0xFF7C3AED)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Home Care Guidance & Red Flag Alerts
+                    if (res.homeCareTips.isNotEmpty) ...[
+                      const Text('Home Care & Barrier Guidance', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                      const SizedBox(height: 6),
+                      ...res.homeCareTips.map((tip) => _BulletItem(text: tip, isPositive: true)),
+                      const SizedBox(height: 14),
+                    ],
+
+                    if (res.redFlagAlerts.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFFECACA)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.warning_amber_rounded, color: Colors.red, size: 18),
+                                SizedBox(width: 8),
+                                Text(
+                                  'When to Seek Urgent Emergency Care',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.red),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            ...res.redFlagAlerts.map((w) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('• ', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                                      Expanded(child: Text(w, style: const TextStyle(fontSize: 11.5, color: Color(0xFF991B1B)))),
+                                    ],
+                                  ),
+                                )),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   ] else ...[
-                    // MEDICINE / CLINICAL TABLET SCOPE DETAILS
+                    // 3. MEDICINE / CLINICAL TABLET SCOPE DETAILS
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -1031,7 +1313,9 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
                             const Icon(Icons.chat_bubble_outline_rounded, size: 18, color: AppColors.primary),
                             const SizedBox(width: 8),
                             Text(
-                              isFood ? 'Ask AI About This Dish' : 'Ask Clinical AI Pharmacist',
+                              isFood
+                                  ? 'Ask AI About This Dish'
+                                  : (isInfection ? 'Ask AI About Infection Care' : 'Ask Clinical AI Pharmacist'),
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
                             ),
                           ],
@@ -1040,7 +1324,9 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
                         Text(
                           isFood
                               ? 'e.g. "Is this okay for diabetes?", "What is a healthy substitute?"'
-                              : 'e.g. "Can I take this with milk?", "What if I miss a dose?"',
+                              : (isInfection
+                                  ? 'e.g. "Is this contagious?", "How long to heal?", "Can I shower?"'
+                                  : 'e.g. "Can I take this with milk?", "What if I miss a dose?"'),
                           style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                         ),
                         if (_chatHistory.isNotEmpty) ...[
@@ -1092,7 +1378,9 @@ class _AiLensScannerScreenState extends State<AiLensScannerScreen>
                               child: TextField(
                                 controller: _chatController,
                                 decoration: InputDecoration(
-                                  hintText: isFood ? 'Ask question about this food...' : 'Ask question about this medicine...',
+                                  hintText: isFood
+                                      ? 'Ask question about this food...'
+                                      : (isInfection ? 'Ask question about this infection...' : 'Ask question about this medicine...'),
                                   hintStyle: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                                   filled: true,
                                   fillColor: Colors.white,
@@ -1156,9 +1444,10 @@ class _ScopeTab extends StatelessWidget {
             title,
             style: TextStyle(
               color: isSelected ? Colors.white : Colors.white70,
-              fontSize: 12.5,
+              fontSize: 11.5,
               fontWeight: FontWeight.bold,
             ),
+            textAlign: TextAlign.center,
           ),
         ),
       ),

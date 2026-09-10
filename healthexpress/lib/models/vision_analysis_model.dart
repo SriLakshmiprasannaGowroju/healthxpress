@@ -1,4 +1,4 @@
-enum VisionScope { food, medicine, general }
+enum VisionScope { food, medicine, infection, general }
 
 class NutrientBreakdown {
   final double proteinG;
@@ -60,13 +60,36 @@ class RelatedDish {
   }
 }
 
+class RecommendedInfectionMedication {
+  final String name;
+  final String category;
+  final String dosage;
+  final bool requiresPrescription;
+
+  RecommendedInfectionMedication({
+    required this.name,
+    required this.category,
+    required this.dosage,
+    this.requiresPrescription = false,
+  });
+
+  factory RecommendedInfectionMedication.fromJson(Map<String, dynamic> json) {
+    return RecommendedInfectionMedication(
+      name: json['name']?.toString() ?? 'Topical / Oral Medication',
+      category: json['category']?.toString() ?? json['type']?.toString() ?? 'Pharmaceutical',
+      dosage: json['dosage']?.toString() ?? 'As directed by physician',
+      requiresPrescription: json['prescription'] == true || json['requires_prescription'] == true,
+    );
+  }
+}
+
 class VisionAnalysisResult {
   final VisionScope scope;
   final String name;
   final String description;
   final String? imageBase64;
 
-  // Food specific fields
+  // 1. Food specific fields
   final int calories;
   final String portionSize;
   final NutrientBreakdown nutrients;
@@ -78,7 +101,7 @@ class VisionAnalysisResult {
   final List<String> foodPrecautions;
   final List<RelatedDish> relatedDishes;
 
-  // Medicine / Clinical specific fields
+  // 2. Medicine / Tablet specific fields
   final String composition;
   final String drugClass;
   final List<String> medicalUses;
@@ -90,11 +113,23 @@ class VisionAnalysisResult {
   final String drugSchedule;
   final double estimatedPrice;
 
+  // 3. Disease & Infection specific fields
+  final String infectionSeverity; // Mild / Moderate / Urgent
+  final String infectionCategory; // Dermatology, Eye, Throat, Wound, etc.
+  final List<String> probableCauses;
+  final List<String> symptomsObserved;
+  final String recommendedSpecialist; // e.g. Dermatologist, General Physician
+  final List<RecommendedInfectionMedication> infectionMedications;
+  final List<String> recommendedLabTests;
+  final List<String> homeCareTips;
+  final List<String> redFlagAlerts;
+
   VisionAnalysisResult({
     required this.scope,
     required this.name,
     required this.description,
     this.imageBase64,
+    // Food defaults
     this.calories = 0,
     this.portionSize = '1 standard serving',
     NutrientBreakdown? nutrients,
@@ -105,6 +140,7 @@ class VisionAnalysisResult {
     this.healthBenefits = const [],
     this.foodPrecautions = const [],
     this.relatedDishes = const [],
+    // Medicine defaults
     this.composition = '',
     this.drugClass = '',
     this.medicalUses = const [],
@@ -115,19 +151,38 @@ class VisionAnalysisResult {
     this.prescriptionRequired = false,
     this.drugSchedule = 'OTC',
     this.estimatedPrice = 0.0,
+    // Infection defaults
+    this.infectionSeverity = 'Moderate',
+    this.infectionCategory = 'Clinical Infection / Dermatology',
+    this.probableCauses = const [],
+    this.symptomsObserved = const [],
+    this.recommendedSpecialist = 'Dermatologist / General Physician',
+    this.infectionMedications = const [],
+    this.recommendedLabTests = const [],
+    this.homeCareTips = const [],
+    this.redFlagAlerts = const [],
   }) : nutrients = nutrients ?? NutrientBreakdown();
 
   bool get isFood => scope == VisionScope.food;
   bool get isMedicine => scope == VisionScope.medicine;
+  bool get isInfection => scope == VisionScope.infection;
 
   factory VisionAnalysisResult.fromJson(Map<String, dynamic> json, {String? imageB64}) {
     final rawScope = json['scope']?.toString().toLowerCase().trim() ?? 'food';
     VisionScope scope = VisionScope.food;
-    if (rawScope.contains('med') ||
+    if (rawScope.contains('infect') ||
+        rawScope.contains('disease') ||
+        rawScope.contains('rash') ||
+        rawScope.contains('skin') ||
+        rawScope.contains('wound') ||
+        rawScope.contains('symptom')) {
+      scope = VisionScope.infection;
+    } else if (rawScope.contains('med') ||
         rawScope.contains('tablet') ||
         rawScope.contains('pill') ||
         rawScope.contains('drug') ||
-        rawScope.contains('pharma')) {
+        rawScope.contains('pharma') ||
+        rawScope.contains('rx')) {
       scope = VisionScope.medicine;
     } else if (rawScope.contains('general')) {
       scope = VisionScope.general;
@@ -149,6 +204,22 @@ class VisionAnalysisResult {
       }
     }
 
+    // Parse infection medications
+    List<RecommendedInfectionMedication> infMeds = [];
+    if (json['infection_medications'] is List) {
+      for (final m in json['infection_medications']) {
+        if (m is Map<String, dynamic>) {
+          infMeds.add(RecommendedInfectionMedication.fromJson(m));
+        }
+      }
+    } else if (json['medications'] is List) {
+      for (final m in json['medications']) {
+        if (m is Map<String, dynamic>) {
+          infMeds.add(RecommendedInfectionMedication.fromJson(m));
+        }
+      }
+    }
+
     List<String> listFrom(dynamic val) {
       if (val is List) {
         return val.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
@@ -161,7 +232,10 @@ class VisionAnalysisResult {
 
     return VisionAnalysisResult(
       scope: scope,
-      name: json['name']?.toString() ?? (scope == VisionScope.medicine ? 'Identified Medicine' : 'Identified Dish'),
+      name: json['name']?.toString() ??
+          (scope == VisionScope.infection
+              ? 'Analyzed Infection / Condition'
+              : (scope == VisionScope.medicine ? 'Identified Medicine' : 'Identified Dish')),
       description: json['description']?.toString() ?? json['summary']?.toString() ?? '',
       imageBase64: imageB64,
       calories: (json['calories'] as num?)?.toInt() ?? 0,
@@ -184,6 +258,16 @@ class VisionAnalysisResult {
       prescriptionRequired: json['prescription_required'] == true || json['is_prescription'] == true,
       drugSchedule: json['drug_schedule']?.toString() ?? 'OTC',
       estimatedPrice: (json['estimated_price'] as num?)?.toDouble() ?? 35.0,
+      // Infection parsing
+      infectionSeverity: json['infection_severity']?.toString() ?? json['severity']?.toString() ?? 'Moderate',
+      infectionCategory: json['infection_category']?.toString() ?? json['category']?.toString() ?? 'Dermatology / Skin Infection',
+      probableCauses: listFrom(json['probable_causes'] ?? json['causes']),
+      symptomsObserved: listFrom(json['symptoms_observed'] ?? json['symptoms']),
+      recommendedSpecialist: json['recommended_specialist']?.toString() ?? json['doctor_specialist']?.toString() ?? 'Dermatologist',
+      infectionMedications: infMeds,
+      recommendedLabTests: listFrom(json['recommended_lab_tests'] ?? json['lab_tests']),
+      homeCareTips: listFrom(json['home_care_tips'] ?? json['care_tips']),
+      redFlagAlerts: listFrom(json['red_flag_alerts'] ?? json['urgent_warnings']),
     );
   }
 }

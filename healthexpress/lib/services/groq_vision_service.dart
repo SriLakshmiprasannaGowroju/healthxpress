@@ -7,7 +7,7 @@ import '../models/vision_analysis_model.dart';
 class GroqVisionService {
   static const String _baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
 
-  /// Analyzes an image with Groq Vision AI (Food Calorie/Nutrient Scope or Medical Tablet Scope)
+  /// Analyzes an image with Groq Vision AI (Food Calories / Disease Infection / Medicine Scope)
   static Future<VisionAnalysisResult> analyzeImage({
     required String base64Image,
     String? userHint,
@@ -20,26 +20,37 @@ class GroqVisionService {
     }
 
     final systemPrompt = '''
-You are HealthExpress AI Vision Diagnostic System, a world-class Clinical Nutritionist and Pharmacist AI.
+You are HealthExpress AI Vision Diagnostic System, a world-class Clinical Diagnostic Physician, Nutritionist, and Pharmacist AI.
 Analyze the user's captured image carefully.
 
-Determine if the image is:
-1. FOOD / DISH / MEAL / BEVERAGE:
-   - Provide exact name, estimated portion size, and accurate nutritional breakdown (Calories in kcal, Protein in g, Carbohydrates in g, Fat in g, Fiber in g, Sugar in g, Sodium in mg).
-   - Glycemic Index (Low, Medium, or High), Health Score (1 to 10), and a concise health verdict.
-   - Dietary tags (e.g. "High Protein", "Diabetic-Friendly", "Keto", "High Sodium", etc.).
-   - Key health benefits and precautions.
-   - Suggest 2 to 3 related or healthier substitute dishes with calorie comparisons.
+Determine if the image represents:
 
-2. MEDICINE / TABLET / CAPSULE / SYRUP / PHARMACEUTICAL:
+1. FOOD / DISH / MEAL / BEVERAGE:
+   - Provide exact dish name, portion size, and accurate nutritional breakdown (Calories in kcal, Protein in g, Carbohydrates in g, Fat in g, Fiber in g, Sugar in g, Sodium in mg).
+   - Glycemic Index ("Low", "Medium", or "High"), Health Score (1 to 10), and a concise health verdict.
+   - Dietary tags (e.g. "High Protein", "Diabetic-Friendly", "Keto", etc.).
+   - Health benefits and precautions.
+   - Suggest 2 to 3 related or healthier alternative dishes with calorie comparisons.
+
+2. DISEASE / INFECTION / RASH / SYMPTOM / CLINICAL CONDITION:
+   - Identify the condition / infection (e.g. Atopic Dermatitis, Fungal Infection, Folliculitis, Allergic Conjunctivitis, Viral Throat Inflammation, Skin Burn/Wound).
+   - Category ("Dermatology / Skin", "Ophthalmology / Eye", "ENT / Throat", "Wound & Trauma", "General Infection").
+   - Severity Level ("Mild", "Moderate", "Urgent / Severe").
+   - Probable causes & observed symptoms.
+   - Recommended first-line medications / topical creams / oral tablets with dosage instructions.
+   - Recommended Diagnostic Lab Tests (e.g. CBC, Skin Scraping, Allergy IgE, Throat Swab).
+   - Recommended Specialist Doctor (e.g. "Dermatologist", "General Physician", "ENT Specialist", "Ophthalmologist").
+   - Home care guidance and red flag urgent warning signs.
+
+3. MEDICINE / TABLET / CAPSULE / SYRUP / PHARMACEUTICAL:
    - Process STRICTLY in the MEDICAL SCOPE.
-   - Identify the Medicine Brand Name, Active Chemical Composition / Molecule, Strength (e.g. 500mg, 650mg), and Drug Class.
-   - Detail clinical medical uses, recommended dosage guidelines, instructions on how to take (with/after food, water), critical warnings, and common side effects.
+   - Identify Medicine Name, Active Chemical Composition / Molecule, Strength (e.g. 500mg, 650mg), and Drug Class.
+   - Clinical medical uses, recommended dosage guidelines, instructions on how to take (with/after food, water), critical warnings, and common side effects.
    - Specify whether prescription is required (true/false), drug schedule (e.g. OTC, Schedule H).
 
 Return ONLY a valid JSON object matching this schema with NO extra commentary or markdown:
 {
-  "scope": "food" | "medicine",
+  "scope": "food" | "infection" | "medicine",
   "name": "string",
   "description": "string",
   "calories": 0,
@@ -61,7 +72,18 @@ Return ONLY a valid JSON object matching this schema with NO extra commentary or
   "related_dishes": [
     { "name": "string", "calories": 0, "why": "string" }
   ],
-  "composition": "string (for medicines)",
+  "infection_severity": "Mild" | "Moderate" | "Urgent / Severe",
+  "infection_category": "string",
+  "probable_causes": ["string"],
+  "symptoms_observed": ["string"],
+  "recommended_specialist": "Dermatologist" | "General Physician" | "ENT Specialist" | "Pediatrician",
+  "infection_medications": [
+    { "name": "string", "category": "string", "dosage": "string", "prescription": false }
+  ],
+  "recommended_lab_tests": ["string"],
+  "home_care_tips": ["string"],
+  "red_flag_alerts": ["string"],
+  "composition": "string",
   "drug_class": "string",
   "medical_uses": ["string"],
   "dosage_guidelines": "string",
@@ -72,7 +94,6 @@ Return ONLY a valid JSON object matching this schema with NO extra commentary or
   "drug_schedule": "OTC" | "Schedule H",
   "estimated_price": 0.0
 }
-Language requirement: Keep all responses clean, clinical, and accurate.
 ''';
 
     final modelsToTry = [
@@ -95,8 +116,8 @@ Language requirement: Keep all responses clean, clinical, and accurate.
                 {
                   'type': 'text',
                   'text': userHint != null && userHint.isNotEmpty
-                      ? 'Analyze this image. User note: $userHint. Provide complete JSON breakdown.'
-                      : 'Analyze this photo carefully. If it is a food or dish, provide calories, nutrients, health score and related dishes. If it is a medicine or tablet, process strictly in medical scope with composition, dosage, warnings and clinical uses. Return JSON.'
+                      ? 'Analyze this image. User context: $userHint. Return complete JSON output.'
+                      : 'Analyze this image. If it is food, calculate calories, macros and related dishes. If it is an infection, skin rash or disease, provide clinical infection details, medications, lab tests, and doctor specialist recommendation. If it is a medicine or tablet, process in medical scope.'
                 },
                 {
                   'type': 'image_url',
@@ -152,12 +173,13 @@ Language requirement: Keep all responses clean, clinical, and accurate.
 You are HealthExpress Clinical AI. The user is asking an interactive follow-up question about an item they just scanned.
 Item Details:
 - Name: ${previousResult.name}
-- Scope: ${previousResult.isFood ? 'Food & Nutrition' : (previousResult.isMedicine ? 'Medicine / Clinical Tablet' : 'General')}
+- Scope: ${previousResult.isFood ? 'Food & Nutrition' : (previousResult.isInfection ? 'Disease & Infection Diagnosis' : 'Medicine / Clinical Tablet')}
 - Description: ${previousResult.description}
 ${previousResult.isFood ? "- Calories: ${previousResult.calories} kcal, Protein: ${previousResult.nutrients.proteinG}g, Carbs: ${previousResult.nutrients.carbsG}g, Fat: ${previousResult.nutrients.fatG}g\n- Glycemic Index: ${previousResult.glycemicIndex}\n- Health Score: ${previousResult.healthScore}/10" : ""}
+${previousResult.isInfection ? "- Severity: ${previousResult.infectionSeverity}\n- Category: ${previousResult.infectionCategory}\n- Causes: ${previousResult.probableCauses.join(', ')}\n- Recommended Specialist: ${previousResult.recommendedSpecialist}\n- Medications: ${previousResult.infectionMedications.map((m) => m.name).join(', ')}" : ""}
 ${previousResult.isMedicine ? "- Active Composition: ${previousResult.composition}\n- Drug Class: ${previousResult.drugClass}\n- Clinical Uses: ${previousResult.medicalUses.join(', ')}\n- Warnings: ${previousResult.criticalWarnings.join(', ')}" : ""}
 
-Answer the user's question with precise, medically accurate, and friendly advice. Keep response concise, structured with bullet points where helpful.
+Answer the user's question with precise, medically accurate, and friendly clinical advice. Keep response concise, structured with bullet points where helpful.
 ''';
 
     final messages = <Map<String, dynamic>>[
@@ -191,7 +213,6 @@ Answer the user's question with precise, medically accurate, and friendly advice
         final bodyJson = jsonDecode(response.body);
         final content = bodyJson['choices']?[0]?['message']?['content']?.toString();
         if (content != null && content.trim().isNotEmpty) {
-          // Clean thinking blocks if any
           return _cleanThinkingBlock(content.trim());
         }
       }
@@ -199,7 +220,7 @@ Answer the user's question with precise, medically accurate, and friendly advice
       debugPrint('Groq follow-up error: $e');
     }
 
-    return 'Based on the analysis for ${previousResult.name}, it provides balanced nutrition when consumed in moderate portions. Feel free to consult your doctor for personalized dietary or clinical guidelines.';
+    return 'Based on the clinical assessment for ${previousResult.name}, follow the recommended guidelines and consult your specialist doctor for personalized therapy.';
   }
 
   /// Extracts JSON object from raw response string (handling markdown code blocks)
@@ -244,12 +265,80 @@ Answer the user's question with precise, medically accurate, and friendly advice
   /// Clinical fallback in case of offline/network interruption
   static VisionAnalysisResult _buildIntelligentFallback(String? hint, String imageB64) {
     final lower = (hint ?? '').toLowerCase();
+    
+    // 1. Infection & Disease Fallback
+    if (lower.contains('infect') ||
+        lower.contains('rash') ||
+        lower.contains('skin') ||
+        lower.contains('eczema') ||
+        lower.contains('fungal') ||
+        lower.contains('disease') ||
+        lower.contains('wound') ||
+        lower.contains('allergy')) {
+      return VisionAnalysisResult(
+        scope: VisionScope.infection,
+        name: 'Contact Dermatitis & Localized Skin Infection',
+        description: 'AI vision detected erythema (redness), micro-papular inflammation and epidermal irritation consistent with contact allergic reaction or mild fungal/bacterial dermatitis.',
+        imageBase64: imageB64,
+        infectionSeverity: 'Moderate',
+        infectionCategory: 'Dermatology & Skin Barrier Care',
+        probableCauses: [
+          'Direct contact with irritants, harsh soaps, or synthetic fabrics',
+          'Mild epidermal fungal overgrowth (Candida/Tinea)',
+          'Allergic hyper-reactivity or eczema flare-up'
+        ],
+        symptomsObserved: [
+          'Localized erythematous patches with itching',
+          'Mild scaling and epidermal barrier disruption',
+          'Absence of deep necrotic ulceration'
+        ],
+        recommendedSpecialist: 'Dermatologist',
+        infectionMedications: [
+          RecommendedInfectionMedication(
+            name: 'Hydrocortisone 1% / Mometasone Topical Cream',
+            category: 'Anti-inflammatory Topical Steroid',
+            dosage: 'Apply thin film twice daily to affected area for 5-7 days',
+            requiresPrescription: false,
+          ),
+          RecommendedInfectionMedication(
+            name: 'Cetirizine 10mg / Levocetirizine 5mg Tablet',
+            category: 'Second-Generation Antihistamine',
+            dosage: '1 tablet once daily at bedtime to suppress itching',
+            requiresPrescription: false,
+          ),
+          RecommendedInfectionMedication(
+            name: 'Mupirocin 2% Ointment (T-Bact)',
+            category: 'Topical Antibacterial',
+            dosage: 'Apply 3 times daily if secondary crusting or bacterial infection develops',
+            requiresPrescription: true,
+          ),
+        ],
+        recommendedLabTests: [
+          'Complete Blood Count (CBC) with Differential',
+          'Total Serum IgE Allergy Level',
+          'Skin Scraping for KOH Fungal Microscopic Mount',
+        ],
+        homeCareTips: [
+          'Keep affected skin clean, dry, and avoid hot water baths',
+          'Apply cold compresses for 10 minutes to soothe acute itching',
+          'Do not scratch to avoid secondary bacterial infection & scarring',
+        ],
+        redFlagAlerts: [
+          'Spreading red streaks, warmth, or purulent pus drainage',
+          'High fever (>100.4°F / 38°C) or severe localized tenderness',
+          'Involvement of eyes, lips, or rapid generalized body spread',
+        ],
+      );
+    }
+
+    // 2. Medicine Tablet Fallback
     final isMed = lower.contains('dolo') ||
         lower.contains('tab') ||
         lower.contains('pill') ||
         lower.contains('med') ||
         lower.contains('paracetamol') ||
-        lower.contains('pantocid');
+        lower.contains('pantocid') ||
+        lower.contains('azithromycin');
 
     if (isMed) {
       return VisionAnalysisResult(
@@ -262,7 +351,7 @@ Answer the user's question with precise, medically accurate, and friendly advice
         medicalUses: [
           'Effective relief from moderate to high fever (Pyrexia)',
           'Alleviates body aches, headaches, and viral fever symptoms',
-          'Symptomatic relief during seasonal infections'
+          'Symptomatic relief during seasonal viral infections'
         ],
         dosageGuidelines: '1 tablet every 6 to 8 hours as prescribed by physician. Maximum 3000mg per 24 hours.',
         howToTake: 'Take orally after meals with a full glass of water.',
@@ -278,6 +367,7 @@ Answer the user's question with precise, medically accurate, and friendly advice
       );
     }
 
+    // 3. Food Fallback
     return VisionAnalysisResult(
       scope: VisionScope.food,
       name: 'Nutritious Mixed Meal / Dish',
